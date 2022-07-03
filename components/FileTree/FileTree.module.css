@@ -1,0 +1,19 @@
+.fileTree {
+  @apply flex flex-col gap-2 h-full w-full;
+}
+
+.header {
+  @apply w-full flex items-center gap-1 text-white;
+}
+
+.tooltip {
+  @apply cursor-pointer;
+}
+
+.files {
+  @apply border-l-[1px] border-[#4e504e] pl-2 overflow-y-scroll h-full;
+}
+
+.actionButton {
+  @apply text-base w-full text-center border-[1px] border-[#4e504e] hover:bg-[#1e1f1d] cursor-pointer text-white;
+}

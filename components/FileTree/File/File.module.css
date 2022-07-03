@@ -1,0 +1,11 @@
+.fileContainer {
+  @apply select-none hover:bg-[#1e1f1d] cursor-pointer w-full px-2 flex justify-between items-center text-white overflow-x-hidden;
+}
+
+.fileName {
+  @apply text-ellipsis overflow-hidden max-w-[70%] sm:max-w-[80%];
+}
+
+.actionButtons {
+  @apply items-center gap-2 sm:gap-1 hidden;
+}

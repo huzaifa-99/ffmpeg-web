@@ -9,3 +9,19 @@
 .terminalContainer {
   @apply min-h-full mx-auto rounded-md bg-[#2D2E2C] w-full sm:w-8/12 md:w-9/12 pl-5 py-5;
 }
+
+.fileSystemContainer {
+  @apply min-h-full mx-auto rounded-md bg-[#2D2E2C] w-full sm:w-4/12 md:w-3/12 p-5 text-white gap-4 flex flex-col;
+}
+
+.fileSystem {
+  @apply max-h-[50%] h-[50%];
+}
+
+.tooltip {
+  @apply text-sm tracking-normal;
+}
+
+.tooltipEmText {
+  @apply text-[#E95420] font-bold;
+}
