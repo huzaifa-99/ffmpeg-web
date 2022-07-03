@@ -1,24 +1,8 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
+import type { NextPage } from 'next';
+import Layout from '../components/Layout';
 
-const Home: NextPage = () => {
-  return (
-    <div>
-      <Head>
-        <title>FFmpeg Web</title>
-        <meta name="description" content="A browser based terminal to run ffmpeg" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+const HomePage: NextPage = () => {
+  return <Layout>FFMPEG WEB</Layout>;
+};
 
-      <main>
-        
-      </main>
-
-      <footer>
-
-      </footer>
-    </div>
-  )
-}
-
-export default Home
+export default HomePage;

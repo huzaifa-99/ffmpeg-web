@@ -1,0 +1,11 @@
+.header {
+  @apply bg-[#2D2E2C] w-full flex justify-between items-center py-3 px-3 md:py-3 md:px-8;
+}
+
+.title {
+  @apply text-white font-bold tracking-wide text-lg sm:text-xl;
+}
+
+.githubLogo {
+  @apply bg-white p-1 flex text-xl md:text-2xl text-black rounded-full;
+}

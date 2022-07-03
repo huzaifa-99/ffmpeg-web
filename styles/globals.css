@@ -1,3 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html {
+  width: 100%;
+}
+
+body {
+  background: #4e504e;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1920px;
+  height: 100vh;
+  max-height: 100vh;
+}
+
+#__next {
+  @apply h-[80%] w-full;
+}
