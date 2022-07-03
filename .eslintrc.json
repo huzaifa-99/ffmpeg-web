@@ -1,3 +1,21 @@
 {
-  "extends": "next/core-web-vitals"
+  "plugins": ["simple-import-sort", "@typescript-eslint"],
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "rules": {
+    "prefer-const": "error",
+    "no-console": "error",
+    "simple-import-sort/exports": "error",
+    "simple-import-sort/imports": [
+      "error",
+      {
+        "groups": [["^\\u0000", "^@?\\w", "^[^.]", "^\\."]]
+      }
+    ],
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-explicit-any": "error"
+  }
 }
