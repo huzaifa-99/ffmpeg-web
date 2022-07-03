@@ -1,3 +1,4 @@
+import cn from 'classnames';
 import dynamic from 'next/dynamic';
 import { FC, useEffect } from 'react';
 import { AiFillEye } from 'react-icons/ai';
@@ -21,6 +22,10 @@ const Home: FC = () => {
     ffmpegFileSystem,
     ffmpegGeneratedFiles,
     filePickerElRef,
+    isMobileScreen,
+    toggleButtons,
+    activeButton,
+    setActiveButton,
     downloadFile,
     removeFileFromFileSystem,
     addPickedFilesToFFMpegFileSystem,
@@ -28,16 +33,50 @@ const Home: FC = () => {
     viewBlobFile,
     openFileSelectionWindow,
     loadSampleFiles,
+    watchWindowSize,
   } = useHome();
 
   useEffect(() => {
     loadSampleFiles();
   }, [loadSampleFiles]);
 
+  useEffect(() => {
+    watchWindowSize();
+  }, [watchWindowSize]);
+
   return (
     <main className={styles.container}>
+      <div
+        className={styles.toggleButtonsContainer}
+        style={{
+          ...(!isMobileScreen && { display: 'none' }),
+        }}
+      >
+        {Object.values(toggleButtons).map((x, index) => (
+          <button
+            key={index}
+            aria-label={x}
+            className={cn(
+              styles.toggleButton,
+              activeButton === x && styles.toggleButtonActive
+            )}
+            onClick={() => setActiveButton(x)}
+          >
+            {x}
+          </button>
+        ))}
+      </div>
       <div className={styles.ffmpegContainer}>
-        <div className={styles.terminalContainer}>
+        <div
+          className={styles.terminalContainer}
+          style={{
+            display: isMobileScreen
+              ? activeButton === toggleButtons.TERMINAL
+                ? 'inherit'
+                : 'none'
+              : 'inherit',
+          }}
+        >
           <FFMpegTerminal
             systemFiles={ffmpegFileSystem?.map((x) => ({
               name: x.fileName,
@@ -47,7 +86,16 @@ const Home: FC = () => {
             onGeneratedFiles={storeGeneratedFiles}
           />
         </div>
-        <div className={styles.fileSystemContainer}>
+        <div
+          className={styles.fileSystemContainer}
+          style={{
+            display: isMobileScreen
+              ? activeButton === toggleButtons.FILES
+                ? 'inherit'
+                : 'none'
+              : 'inherit',
+          }}
+        >
           <input
             ref={filePickerElRef}
             type="file"

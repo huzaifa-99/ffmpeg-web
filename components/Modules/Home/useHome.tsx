@@ -13,6 +13,8 @@ interface IFileSystem {
  * A custom hook to abstract Home component's logic from UI
  */
 const useHome = () => {
+  const toggleButtons = { TERMINAL: 'Terminal', FILES: 'Files' };
+
   const filePickerElRef = useRef<HTMLInputElement>(null);
   const [ffmpegFileSystem, setFFmpegFileSystem] = useState<Array<IFileSystem>>(
     []
@@ -20,6 +22,8 @@ const useHome = () => {
   const [ffmpegGeneratedFiles, setFFmpegGeneratedFiles] = useState<
     Array<IFileSystem>
   >([]);
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
+  const [activeButton, setActiveButton] = useState(toggleButtons.TERMINAL);
 
   /**
    * Adds picked files to ffmpeg file system
@@ -159,10 +163,32 @@ const useHome = () => {
    */
   const openFileSelectionWindow = () => filePickerElRef.current?.click();
 
+  /**
+   * Listen to window width changes
+   */
+  const watchWindowSize = useCallback(() => {
+    const maxMobileScreenSize = 640; // in pixels
+
+    // check if the user is on mobile screen
+    if (window.outerWidth <= maxMobileScreenSize) setIsMobileScreen(true);
+
+    // change mobile screen state on window resize
+    window.addEventListener('resize', (e: Event) => {
+      const resizeWidth = (e.target as Window).outerWidth;
+
+      if (resizeWidth > maxMobileScreenSize) setIsMobileScreen(false);
+      else if (resizeWidth <= maxMobileScreenSize) setIsMobileScreen(true);
+    });
+  }, []);
+
   return {
     filePickerElRef,
     ffmpegFileSystem,
     ffmpegGeneratedFiles,
+    isMobileScreen,
+    activeButton,
+    toggleButtons,
+    setActiveButton,
     openFileSelectionWindow,
     addPickedFilesToFFMpegFileSystem,
     downloadFile,
@@ -170,6 +196,7 @@ const useHome = () => {
     storeGeneratedFiles,
     viewBlobFile,
     loadSampleFiles,
+    watchWindowSize,
   };
 };
 

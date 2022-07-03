@@ -2,6 +2,18 @@
   @apply w-full min-h-full flex flex-col gap-4 mt-4 px-4 sm:px-8;
 }
 
+.toggleButtonsContainer {
+  @apply w-full bg-[#2D2E2C] rounded-md text-white p-2 flex gap-2 items-center;
+}
+
+.toggleButton {
+  @apply w-full rounded-sm text-gray-100;
+}
+
+.toggleButtonActive {
+  @apply bg-[#E95420];
+}
+
 .ffmpegContainer {
   @apply w-full min-h-[70vh] sm:min-h-[80vh] flex gap-4;
 }
