@@ -1,4 +1,4 @@
-import { ChangeEvent, useRef, useState } from 'react';
+import { ChangeEvent, useCallback, useRef, useState } from 'react';
 import { IFFMpegFileSystem } from '../../FFMpegTerminal/Terminal';
 
 interface IFileSystem {
@@ -89,6 +89,51 @@ const useHome = () => {
   };
 
   /**
+   * Loads sample files from the server for processing by ffmpeg
+   */
+  const loadSampleFiles = useCallback(async () => {
+    // filename and path of sample files on server
+    const folder = `/files/media`;
+    const files = [
+      'sample_img1.jpg',
+      'sample_img2.jpg',
+      'sample_video.mp4',
+      'sample_audio.mp3',
+    ];
+
+    // generate file blob and add to file system state
+    {
+      const newFileSystem: Array<IFileSystem> = [];
+
+      /**
+       * 1- loop over sample files map
+       * 2- fetch each file from server
+       * 3- generate file system obj for each file
+       */
+      await Promise.all(
+        files?.map(async (fileName) => {
+          await fetch(`${folder}/${fileName}`)
+            .then((res) => res.blob())
+            .then(async (blob) => {
+              const url = URL.createObjectURL(blob);
+              const file = {
+                blobURL: url,
+                fileName: fileName,
+                isDownloadable: true,
+                isRemovable: true,
+                mimeType: blob.type,
+              };
+              newFileSystem.push(file);
+            })
+            .catch(() => null);
+        })
+      );
+
+      setFFmpegFileSystem(newFileSystem);
+    }
+  }, []);
+
+  /**
    * Store new files in ffmpeg generated files
    * @param files - the files to add to ffmpeg generated files
    */
@@ -124,6 +169,7 @@ const useHome = () => {
     removeFileFromFileSystem,
     storeGeneratedFiles,
     viewBlobFile,
+    loadSampleFiles,
   };
 };
 

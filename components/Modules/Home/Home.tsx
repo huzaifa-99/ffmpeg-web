@@ -1,5 +1,5 @@
 import dynamic from 'next/dynamic';
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { AiFillEye } from 'react-icons/ai';
 import { BsFillTrash2Fill } from 'react-icons/bs';
 import { TbDownload } from 'react-icons/tb';
@@ -27,7 +27,12 @@ const Home: FC = () => {
     storeGeneratedFiles,
     viewBlobFile,
     openFileSelectionWindow,
+    loadSampleFiles,
   } = useHome();
+
+  useEffect(() => {
+    loadSampleFiles();
+  }, [loadSampleFiles]);
 
   return (
     <main className={styles.container}>
