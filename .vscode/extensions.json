@@ -7,6 +7,7 @@
     "dsznajder.es7-react-js-snippets",
     "dbaeumer.vscode-eslint",
     "shd101wyy.markdown-preview-enhanced",
-    "esbenp.prettier-vscode"
+    "esbenp.prettier-vscode",
+    "dtsvet.vscode-wasm"
   ]
 }

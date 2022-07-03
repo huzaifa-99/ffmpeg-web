@@ -1,0 +1,11 @@
+.container {
+  @apply w-full min-h-full flex flex-col gap-4 mt-4 px-4 sm:px-8;
+}
+
+.ffmpegContainer {
+  @apply w-full min-h-[70vh] sm:min-h-[80vh] flex gap-4;
+}
+
+.terminalContainer {
+  @apply min-h-full mx-auto rounded-md bg-[#2D2E2C] w-full sm:w-8/12 md:w-9/12 pl-5 py-5;
+}

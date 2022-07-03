@@ -18,3 +18,20 @@ body {
 #__next {
   @apply h-[80%] w-full;
 }
+
+/* custom scroll bar */
+* {
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  opacity: 0;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #ffffff20;
+}

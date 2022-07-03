@@ -1,0 +1,90 @@
+.terminalContainer {
+  @apply w-full h-full;
+}
+
+.terminal {
+  @apply w-full h-full;
+}
+
+/* custom xterm terminal styles */
+.terminalContainer :global .xterm-viewport {
+  /* This is important for resizing the terminal */
+  /* More here: https://github.com/xtermjs/xterm.js/issues/3564#issuecomment-1004417440 */
+  width: initial !important;
+}
+
+/* custom react context menu styles */
+.contextMenu :global .react-contextmenu {
+  font-family: 'Cascadia Code', Menlo, monospace;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 5px;
+  color: #373a3c;
+  font-size: 16px;
+  margin: 2px 0 0;
+  min-width: 160px;
+  outline: none;
+  opacity: 0;
+  padding: 0px 0;
+  pointer-events: none;
+  text-align: left;
+  transition: opacity 250ms ease !important;
+}
+
+.contextMenu :global .react-contextmenu.react-contextmenu--visible {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 9999;
+}
+
+.contextMenu :global .react-contextmenu-item {
+  background: 0 0;
+  border: 0;
+  color: #373a3c;
+  cursor: pointer;
+  font-weight: 400;
+  line-height: 1.5;
+  padding: 2px 20px;
+  text-align: inherit;
+  white-space: nowrap;
+}
+
+.contextMenu :global .react-contextmenu-item:first-child {
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+}
+
+.contextMenu :global .react-contextmenu-item:last-child {
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+
+.contextMenu :global .react-contextmenu-item.react-contextmenu-item--active,
+.contextMenu :global .react-contextmenu-item.react-contextmenu-item--selected {
+  color: #fff;
+  background-color: #e95420;
+  border-color: #e95420;
+  text-decoration: none;
+}
+
+.contextMenu :global .react-contextmenu-item.react-contextmenu-item--disabled,
+.contextMenu
+  :global
+  .react-contextmenu-item.react-contextmenu-item--disabled:hover {
+  background-color: transparent;
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #878a8c;
+}
+
+.contextMenu :global .react-contextmenu-item--divider {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  cursor: inherit;
+  margin-bottom: 3px;
+  padding: 2px 0;
+}
+
+.contextMenu :global .react-contextmenu-item--divider:hover {
+  background-color: transparent;
+  border-color: rgba(0, 0, 0, 0.15);
+}
