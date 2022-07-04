@@ -7,6 +7,8 @@ A browser based terminal to run ffmpeg with web assembly. **[ Experimental ]**
 You can run most of the ffmpeg commands on the web terminal.
 
 Since there is no filesystem, the terminal will pick up the uploaded files from the **File System** section (see image below). By default it has some files which you can process, you can also upload your own files from your system (uploaded files are not actually uploaded to any server). The processed files will appear in the **Generated Files** section
+
+
 ![File System](./docs/media/filesystem.PNG)
 
 ## Setup Locally
