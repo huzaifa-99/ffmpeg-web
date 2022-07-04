@@ -1,34 +1,57 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+A browser based terminal to run ffmpeg with web assembly. **[ Experimental ]**
 
-## Getting Started
+## Usage
 
-First, run the development server:
+![Demo](./docs/media/demo_gif_compressed.gif)
+
+You can run most of the ffmpeg commands on the web terminal.
+
+Since there is no filesystem, the terminal will pick up the uploaded files from the **File System** section (see image below). By default it has some files which you can process, you can also upload your own files from your system (uploaded files are not actually uploaded to any server). The processed files will appear in the **Generated Files** section
+![File System](./docs/media/filesystem.PNG)
+
+## Setup Locally
+
+**Note:** Make sure you have nodeJS v14+ installed.
+
+Clone this repo
 
 ```bash
-npm run dev
-# or
-yarn dev
+git clone https://github.com/huzaifa-99/ffmpeg-web
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Cd into the cloned folder
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+```bash
+cd ffmpeg-web
+```
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Install dependencies
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+```bash
+yarn install
+# or
+npm install
+```
 
-## Learn More
+Run the dev server
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+yarn dev
+# or
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Disclosure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- This is an experiment of using ffmpeg with web assembly on a web based terminal just like done on a native cli.
+- It uses ffmpeg web assembly ([ffmpegwasm/ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm)) which requires SharedArrayBuffer to work. SharedArrayBuffer is disabled in most browsers from 2018 due to [Spectre](<https://en.wikipedia.org/wiki/Spectre_(security_vulnerability)>) vulnerability. These headers are sent from the server to enable SharedArrayBuffer.
 
-## Deploy on Vercel
+```
+Cross-Origin-Opener-Policy=same-origin // prevent XS-leaks, don't load cross origin documents in the same browsing context
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Cross-Origin-Embedder-Policy=require-corp // prevent docs from loading cross-origin resource, only load resources from the same origin
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- It loads ffmpeg web assembly file from the same origin (only tested on chrome desktop v103)
+- For best results please only process files with size less than 1GB. You can go up to 2 GB, which is a hard limit in WebAssembly, going beyond that might break things.
+- On first page load, it pulls ffmpeg web assembly from server (size ~25MB) which might make things slow and caches it (next page loads are faster).
