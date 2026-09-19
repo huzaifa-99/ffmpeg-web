@@ -512,6 +512,11 @@ export class FFMpegTerminal extends XTerminal {
     // add key bindings
     this.attachKeyBindings();
 
+    this.writeln(
+      'Run FFmpeg in your browser via WebAssembly - files stay on your device.'
+    );
+    this.writeln('');
+
     // run help command
     this.commandList['help'].exec(this);
 
