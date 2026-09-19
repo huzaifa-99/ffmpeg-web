@@ -120,6 +120,31 @@ const helpCommand: Command = {
   },
   description: 'Prints command list',
 };
+const lsCommand: Command = {
+  exec: async (terminal: FFMpegTerminal): Promise<FFMpegTerminal> => {
+    const systemFiles = terminal.files.system?.map((x) => x.name) ?? [];
+
+    let generatedFiles: string[] = [];
+    try {
+      if (terminal.ffmpegWasm.loaded) {
+        generatedFiles = await listGeneratedFileNames(terminal);
+      }
+    } catch {
+      generatedFiles = [];
+    }
+
+    const files = [...new Set([...systemFiles, ...generatedFiles])].sort();
+
+    if (files.length === 0) {
+      terminal.writeln('');
+    } else {
+      terminal.writeln(files.join('  '));
+    }
+
+    return terminal.promptInput(true);
+  },
+  description: 'Lists available files',
+};
 const ffmpegCommand: Command = {
   exec: async (terminal: FFMpegTerminal): Promise<FFMpegTerminal> => {
     // load any system files referenced in the command into the wasm FS
@@ -270,6 +295,7 @@ export class FFMpegTerminal extends XTerminal {
   commandList: { [key: string]: Command } = {
     clear: clearCommand,
     help: helpCommand,
+    ls: lsCommand,
     ffmpeg: ffmpegCommand,
   };
 
