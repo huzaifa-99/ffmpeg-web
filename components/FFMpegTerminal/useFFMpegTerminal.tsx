@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { FFMpegTerminal, IFFMpegFileSystem } from './Terminal';
 
 const theme = {
@@ -25,6 +25,7 @@ const theme = {
 
 interface IUseFFMpegTerminal {
   onGeneratedFiles: (files: Array<IFFMpegFileSystem>) => Promise<void>;
+  onTerminalReady?: (api: { loadCommand: (command: string) => void }) => void;
 }
 
 /**
@@ -33,11 +34,17 @@ interface IUseFFMpegTerminal {
  */
 const useFFMpegTerminal = ({
   onGeneratedFiles = async () => undefined,
+  onTerminalReady,
 }: IUseFFMpegTerminal) => {
   const terminalElRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<FFMpegTerminal | null>(null);
   // Keep a ref so mount can pick up files that arrived before the terminal existed
   const systemFilesRef = useRef<Array<IFFMpegFileSystem>>([]);
+  const onTerminalReadyRef = useRef(onTerminalReady);
+
+  useEffect(() => {
+    onTerminalReadyRef.current = onTerminalReady;
+  }, [onTerminalReady]);
 
   const syncSystemFilesToTerminal = (
     terminal: FFMpegTerminal,
@@ -45,6 +52,10 @@ const useFFMpegTerminal = ({
   ) => {
     terminal.files.system = files;
   };
+
+  const loadCommand = useCallback((command: string) => {
+    terminalRef.current?.loadCommand(command);
+  }, []);
 
   /**
    * Add ffmpeg terminal to an HTML element
@@ -86,8 +97,9 @@ const useFFMpegTerminal = ({
       // Sample files often finish loading before setup completes — re-sync
       syncSystemFilesToTerminal(terminal, systemFilesRef.current);
       terminalRef.current = terminal;
+      onTerminalReadyRef.current?.({ loadCommand });
     },
-    [onGeneratedFiles]
+    [onGeneratedFiles, loadCommand]
   );
 
   /**
@@ -164,6 +176,7 @@ const useFFMpegTerminal = ({
     pasteClipboardTextToTerminal,
     clearTerminal,
     runHelpCommand,
+    loadCommand,
   };
 };
 

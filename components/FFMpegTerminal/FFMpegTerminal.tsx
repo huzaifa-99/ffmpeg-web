@@ -9,6 +9,7 @@ let isMounted = false; // stores the mounted state of the terminal
 interface IFFMpegTerminal {
   systemFiles: Array<IFFMpegFileSystem>;
   onGeneratedFiles: (files: Array<IFFMpegFileSystem>) => Promise<void>;
+  onTerminalReady?: (api: { loadCommand: (command: string) => void }) => void;
 }
 
 interface IContextMenuState {
@@ -19,6 +20,7 @@ interface IContextMenuState {
 const FFMpegTerminal: FC<IFFMpegTerminal> = ({
   systemFiles = [],
   onGeneratedFiles,
+  onTerminalReady,
 }: IFFMpegTerminal): ReactElement => {
   const [contextMenu, setContextMenu] = useState<IContextMenuState | null>(
     null
@@ -33,6 +35,7 @@ const FFMpegTerminal: FC<IFFMpegTerminal> = ({
     runHelpCommand,
   } = useFFMpegTerminal({
     onGeneratedFiles,
+    onTerminalReady,
   });
 
   // update terminal system files on props update

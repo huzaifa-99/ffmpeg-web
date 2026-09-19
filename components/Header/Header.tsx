@@ -1,24 +1,31 @@
 import Link from 'next/link';
-import { FC, ReactElement } from 'react';
+import { FC, ReactElement, ReactNode } from 'react';
 import { BsGithub } from 'react-icons/bs';
 import styles from './Header.module.css';
 
-const Header: FC = (): ReactElement => {
+interface IHeader {
+  actions?: ReactNode;
+}
+
+const Header: FC<IHeader> = ({ actions }: IHeader): ReactElement => {
   return (
     <header className={styles.header}>
       <h1 className={styles.title}>
         <Link href="/">FFmpeg web</Link>
       </h1>
 
-      <a
-        href="https://github.com/huzaifa-99/ffmpeg-web"
-        target="_blank"
-        rel="noreferrer"
-      >
-        <button aria-label="github-link" className={styles.githubLogo}>
-          <BsGithub />
-        </button>
-      </a>
+      <div className={styles.actions}>
+        {actions}
+        <a
+          href="https://github.com/huzaifa-99/ffmpeg-web"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <button aria-label="github-link" className={styles.githubLogo}>
+            <BsGithub />
+          </button>
+        </a>
+      </div>
     </header>
   );
 };

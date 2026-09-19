@@ -328,6 +328,29 @@ export class FFMpegTerminal extends XTerminal {
   }
 
   /**
+   * Replace the current input line with a command (used by Examples).
+   */
+  loadCommand(text: string): FFMpegTerminal {
+    const normalized = normalizeCommandText(text);
+    if (!normalized) return this;
+
+    // Clear characters after the prompt on the current line
+    const typedLength = Math.max(
+      0,
+      this.buffer.normal.cursorX - this.prefixCharacter.length
+    );
+    for (let i = 0; i < typedLength; i++) {
+      this.write('\b \b');
+    }
+
+    this.activeCommand = '';
+    this.write(normalized);
+    this.activeCommand = normalized;
+    this.focus();
+    return this;
+  }
+
+  /**
    * Remove the last character from the terminal input
    */
   removeLastCharacter(): FFMpegTerminal {

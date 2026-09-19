@@ -1,10 +1,13 @@
 import cn from 'classnames';
 import dynamic from 'next/dynamic';
-import { FC, useEffect } from 'react';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { AiFillEye } from 'react-icons/ai';
 import { BsFillTrash2Fill } from 'react-icons/bs';
 import { TbDownload } from 'react-icons/tb';
+import ExamplesModal from '../../Examples/Examples';
 import FileTree from '../../FileTree/FileTree';
+import Header from '../../Header/Header';
+import headerStyles from '../../Header/Header.module.css';
 import styles from './Home.module.css';
 import useHome from './useHome';
 
@@ -18,6 +21,8 @@ const FFMpegTerminal = dynamic(
 );
 
 const Home: FC = () => {
+  const loadCommandRef = useRef<((command: string) => void) | null>(null);
+  const [examplesOpen, setExamplesOpen] = useState(false);
   const {
     ffmpegFileSystem,
     ffmpegGeneratedFiles,
@@ -44,142 +49,177 @@ const Home: FC = () => {
     watchWindowSize();
   }, [watchWindowSize]);
 
+  const handleTerminalReady = useCallback(
+    (api: { loadCommand: (command: string) => void }) => {
+      loadCommandRef.current = api.loadCommand;
+    },
+    []
+  );
+
+  const pasteIntoTerminal = useCallback((command: string) => {
+    loadCommandRef.current?.(command);
+    if (window.outerWidth <= 640) {
+      setActiveButton(toggleButtons.TERMINAL);
+    }
+  }, [setActiveButton, toggleButtons.TERMINAL]);
+
   return (
-    <main className={styles.container}>
-      <div
-        className={styles.toggleButtonsContainer}
-        style={{
-          ...(!isMobileScreen && { display: 'none' }),
-        }}
-      >
-        {Object.values(toggleButtons).map((x, index) => (
+    <>
+      <Header
+        actions={
           <button
-            key={index}
-            aria-label={x}
-            className={cn(
-              styles.toggleButton,
-              activeButton === x && styles.toggleButtonActive
-            )}
-            onClick={() => setActiveButton(x)}
+            type="button"
+            className={headerStyles.examplesButton}
+            onClick={() => setExamplesOpen(true)}
           >
-            {x}
+            View examples
           </button>
-        ))}
-      </div>
-      <div className={styles.ffmpegContainer}>
+        }
+      />
+      <main className={styles.container}>
         <div
-          className={styles.terminalContainer}
+          className={styles.toggleButtonsContainer}
           style={{
-            display: isMobileScreen
-              ? activeButton === toggleButtons.TERMINAL
-                ? 'inherit'
-                : 'none'
-              : 'inherit',
+            ...(!isMobileScreen && { display: 'none' }),
           }}
         >
-          <FFMpegTerminal
-            systemFiles={ffmpegFileSystem?.map((x) => ({
-              name: x.fileName,
-              data: x.blobURL,
-              mimeType: x.mimeType,
-            }))}
-            onGeneratedFiles={storeGeneratedFiles}
-          />
+          {Object.values(toggleButtons).map((x, index) => (
+            <button
+              key={index}
+              aria-label={x}
+              className={cn(
+                styles.toggleButton,
+                activeButton === x && styles.toggleButtonActive
+              )}
+              onClick={() => setActiveButton(x)}
+            >
+              {x}
+            </button>
+          ))}
         </div>
-        <div
-          className={styles.fileSystemContainer}
-          style={{
-            display: isMobileScreen
-              ? activeButton === toggleButtons.FILES
-                ? 'inherit'
-                : 'none'
-              : 'inherit',
-          }}
-        >
-          <input
-            ref={filePickerElRef}
-            type="file"
-            onChange={addPickedFilesToFFMpegFileSystem}
-            multiple
-            hidden
-          />
-          <div className={styles.fileSystem}>
-            <FileTree
-              name="File System"
-              key="files-system"
-              tooltip={
-                <p className={styles.tooltip}>
-                  Files which you can use with the ffmpeg commands. You can also
-                  upload your own.
-                  <br />
-                  <br />
-                  <span className={styles.tooltipEmText}>
-                    Disclaimer:&nbsp;
-                  </span>
-                  <br />
-                  <span>
-                    - Your files are not uploaded to any server or database.
-                  </span>
-                  <br />
-                  <span>
-                    - For better results please only process files with size
-                    less than 1 GB.
-                  </span>
-                </p>
-              }
-              files={ffmpegFileSystem?.map((x) => ({
+        <div className={styles.ffmpegContainer}>
+          <div
+            className={styles.terminalContainer}
+            style={{
+              display: isMobileScreen
+                ? activeButton === toggleButtons.TERMINAL
+                  ? 'inherit'
+                  : 'none'
+                : 'inherit',
+            }}
+          >
+            <FFMpegTerminal
+              systemFiles={ffmpegFileSystem?.map((x) => ({
                 name: x.fileName,
-                actionButtons: [
-                  {
-                    icon: <AiFillEye color="#ffffff" />,
-                    onClick: () => viewBlobFile(x.blobURL),
-                  },
-                  {
-                    icon: <TbDownload color="#ffffff" />,
-                    onClick: () => downloadFile(x.blobURL, x.fileName),
-                  },
-                  {
-                    icon: <BsFillTrash2Fill color="#ffffff" />,
-                    onClick: () => removeFileFromFileSystem(x.blobURL),
-                  },
-                ],
+                data: x.blobURL,
+                mimeType: x.mimeType,
               }))}
-              actionButtons={[
-                {
-                  text: 'Upload Files',
-                  onClick: openFileSelectionWindow,
-                },
-              ]}
+              onGeneratedFiles={storeGeneratedFiles}
+              onTerminalReady={handleTerminalReady}
             />
           </div>
-          <div className={styles.fileSystem}>
-            <FileTree
-              name="Generated Files"
-              key="generated-files"
-              tooltip={
-                <p className={styles.tooltip}>
-                  Files which you have processed with the ffmpeg commands will
-                  appear here
-                </p>
-              }
-              files={ffmpegGeneratedFiles?.map((x) => ({
-                name: x.fileName,
-                actionButtons: [
-                  {
-                    icon: <AiFillEye color="#ffffff" />,
-                    onClick: () => viewBlobFile(x.blobURL),
-                  },
-                  {
-                    icon: <TbDownload color="#ffffff" />,
-                    onClick: () => downloadFile(x.blobURL, x.fileName),
-                  },
-                ],
-              }))}
+          <div
+            className={styles.fileSystemContainer}
+            style={{
+              display: isMobileScreen
+                ? activeButton === toggleButtons.FILES
+                  ? 'inherit'
+                  : 'none'
+                : 'inherit',
+            }}
+          >
+            <input
+              ref={filePickerElRef}
+              type="file"
+              onChange={addPickedFilesToFFMpegFileSystem}
+              multiple
+              hidden
             />
+            <div className={styles.fileSystem}>
+              <FileTree
+                name="File System"
+                key="files-system"
+                tooltip={
+                  <p className={styles.tooltip}>
+                    Files which you can use with the ffmpeg commands. You can
+                    also upload your own.
+                    <br />
+                    <br />
+                    <span className={styles.tooltipEmText}>
+                      Disclaimer:&nbsp;
+                    </span>
+                    <br />
+                    <span>
+                      - Your files are not uploaded to any server or database.
+                    </span>
+                    <br />
+                    <span>
+                      - For better results please only process files with size
+                      less than 1 GB.
+                    </span>
+                  </p>
+                }
+                files={ffmpegFileSystem?.map((x) => ({
+                  name: x.fileName,
+                  actionButtons: [
+                    {
+                      icon: <AiFillEye color="#ffffff" />,
+                      onClick: () => viewBlobFile(x.blobURL),
+                    },
+                    {
+                      icon: <TbDownload color="#ffffff" />,
+                      onClick: () => downloadFile(x.blobURL, x.fileName),
+                    },
+                    {
+                      icon: <BsFillTrash2Fill color="#ffffff" />,
+                      onClick: () => removeFileFromFileSystem(x.blobURL),
+                    },
+                  ],
+                }))}
+                actionButtons={[
+                  {
+                    text: 'Upload Files',
+                    onClick: openFileSelectionWindow,
+                  },
+                ]}
+              />
+            </div>
+            <div className={styles.fileSystem}>
+              <FileTree
+                name="Generated Files"
+                key="generated-files"
+                tooltip={
+                  <p className={styles.tooltip}>
+                    Files which you have processed with the ffmpeg commands will
+                    appear here
+                  </p>
+                }
+                files={ffmpegGeneratedFiles?.map((x) => ({
+                  name: x.fileName,
+                  actionButtons: [
+                    {
+                      icon: <AiFillEye color="#ffffff" />,
+                      onClick: () => viewBlobFile(x.blobURL),
+                    },
+                    {
+                      icon: <TbDownload color="#ffffff" />,
+                      onClick: () => downloadFile(x.blobURL, x.fileName),
+                    },
+                  ],
+                }))}
+              />
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+      <ExamplesModal
+        open={examplesOpen}
+        onClose={() => {
+          setExamplesOpen(false);
+        }}
+        onPasteIntoTerminal={pasteIntoTerminal}
+      />
+    </>
   );
 };
 

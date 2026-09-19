@@ -1,0 +1,59 @@
+.overlay {
+  @apply fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4;
+}
+
+.modal {
+  @apply w-full max-w-2xl max-h-[85vh] flex flex-col gap-4 rounded-md bg-[#2D2E2C] text-white p-4 sm:p-5 shadow-xl border border-[#4e504e];
+}
+
+.modalHeader {
+  @apply flex items-start justify-between gap-4;
+}
+
+.heading {
+  @apply text-white text-lg font-medium m-0;
+}
+
+.intro {
+  @apply text-sm text-gray-400 m-0 mt-1;
+}
+
+.closeButton {
+  @apply text-2xl leading-none text-gray-300 hover:text-white cursor-pointer bg-transparent border-0 px-1;
+}
+
+.list {
+  @apply list-none m-0 p-0 flex flex-col gap-3 overflow-y-auto min-h-0;
+}
+
+.item {
+  @apply flex flex-col gap-2 border border-[#4e504e] rounded-sm p-3;
+}
+
+.itemHeader {
+  @apply flex flex-col gap-0.5;
+}
+
+.title {
+  @apply text-sm text-white font-medium m-0;
+}
+
+.description {
+  @apply text-xs text-gray-400 m-0;
+}
+
+.command {
+  @apply m-0 p-2 rounded-sm bg-[#1e1f1d] text-[11px] leading-snug text-gray-200 overflow-x-auto whitespace-pre-wrap break-all font-mono;
+}
+
+.actions {
+  @apply flex gap-2;
+}
+
+.actionButton {
+  @apply flex-1 text-xs text-center border border-[#4e504e] hover:bg-[#1e1f1d] cursor-pointer text-white py-1.5 px-2 rounded-sm;
+}
+
+.actionButtonPrimary {
+  @apply flex-1 text-xs text-center border border-[#E95420] bg-[#E95420] hover:bg-[#d14a1b] cursor-pointer text-white py-1.5 px-2 rounded-sm;
+}

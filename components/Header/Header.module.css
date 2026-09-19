@@ -10,6 +10,14 @@
   @apply text-inherit no-underline;
 }
 
+.actions {
+  @apply flex items-center gap-3;
+}
+
+.examplesButton {
+  @apply text-sm text-white border border-[#4e504e] hover:bg-[#1e1f1d] cursor-pointer rounded-sm px-3 py-1.5;
+}
+
 .githubLogo {
   @apply bg-white p-1 flex text-xl md:text-2xl text-black rounded-full;
 }
