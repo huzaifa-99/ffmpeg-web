@@ -153,8 +153,21 @@ const useHome = () => {
     }));
 
     setFFmpegGeneratedFiles((ffmpegFiles: Array<IFileSystem>) => {
-      ffmpegFiles.push(...newGeneratedFiles);
-      return [...ffmpegFiles];
+      const next = [...ffmpegFiles];
+
+      for (const file of newGeneratedFiles) {
+        const existingIndex = next.findIndex(
+          (x) => x.fileName === file.fileName
+        );
+        if (existingIndex >= 0) {
+          URL.revokeObjectURL(next[existingIndex].blobURL);
+          next[existingIndex] = file;
+        } else {
+          next.push(file);
+        }
+      }
+
+      return next;
     });
   };
 

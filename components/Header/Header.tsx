@@ -7,12 +7,14 @@ const Header: FC = (): ReactElement => {
   return (
     <header className={styles.header}>
       <h1 className={styles.title}>
-        <Link href="/">
-          <a>FFmpeg web</a>
-        </Link>
+        <Link href="/">FFmpeg web</Link>
       </h1>
 
-      <a href="https://github.com/huzaifa-99/ffmpeg-web">
+      <a
+        href="https://github.com/huzaifa-99/ffmpeg-web"
+        target="_blank"
+        rel="noreferrer"
+      >
         <button aria-label="github-link" className={styles.githubLogo}>
           <BsGithub />
         </button>

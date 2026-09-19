@@ -1,6 +1,5 @@
-import 'xterm/css/xterm.css';
-import { FC, ReactElement, useEffect } from 'react';
-import { ContextMenu, ContextMenuTrigger, MenuItem } from 'react-contextmenu';
+import '@xterm/xterm/css/xterm.css';
+import { FC, ReactElement, useEffect, useState } from 'react';
 import styles from './FFMpegTerminal.module.css';
 import { IFFMpegFileSystem } from './Terminal';
 import useFFMpegTerminal from './useFFMpegTerminal';
@@ -12,10 +11,18 @@ interface IFFMpegTerminal {
   onGeneratedFiles: (files: Array<IFFMpegFileSystem>) => Promise<void>;
 }
 
+interface IContextMenuState {
+  x: number;
+  y: number;
+}
+
 const FFMpegTerminal: FC<IFFMpegTerminal> = ({
   systemFiles = [],
   onGeneratedFiles,
 }: IFFMpegTerminal): ReactElement => {
+  const [contextMenu, setContextMenu] = useState<IContextMenuState | null>(
+    null
+  );
   const {
     terminalElRef,
     mountTerminalToContainer,
@@ -41,59 +48,80 @@ const FFMpegTerminal: FC<IFFMpegTerminal> = ({
     }
   }, [terminalElRef, mountTerminalToContainer]);
 
+  useEffect(() => {
+    if (!contextMenu) return;
+
+    const closeMenu = () => setContextMenu(null);
+    window.addEventListener('click', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
+    return () => {
+      window.removeEventListener('click', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
+    };
+  }, [contextMenu]);
+
+  const runMenuAction = async (action: () => void | Promise<void>) => {
+    setContextMenu(null);
+    await action();
+  };
+
   return (
     <>
       <div className={styles.terminalContainer}>
-        <ContextMenuTrigger
-          /**
-           * NOTE-
-           * The context menu related components gave me an error if i tried to pass props as id="id"
-           *
-           * Error-
-           * Type '{ children: Element; id: string; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<Component<ContextMenuTriggerProps, any, any>> & Readonly<...>'
-           *
-           * Reason-
-           * This is a package related issue, the components in the package are not defined correctly
-           *
-           * Fix-
-           * skip the block (executed by typescript) where the IntrinsicAttributes assignment is made, done by passing props with spread operator
-           */
-          {...{ id: 'context-menu' }}
-        >
-          <div
-            id="terminal"
-            className={styles.terminal}
-            ref={terminalElRef}
-          ></div>
-        </ContextMenuTrigger>
+        <div
+          id="terminal"
+          className={styles.terminal}
+          ref={terminalElRef}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            setContextMenu({ x: event.clientX, y: event.clientY });
+          }}
+        />
       </div>
-      <div className={styles.contextMenu}>
-        <ContextMenu
-          /**
-           * NOTE-
-           * The context menu related components gave me an error if i tried to pass props as id="id"
-           *
-           * Error-
-           * Type '{ children: Element; id: string; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<Component<ContextMenuTriggerProps, any, any>> & Readonly<...>'
-           *
-           * Reason-
-           * This is a package related issue, the components in the package are not defined correctly
-           *
-           * Fix-
-           * skip the block (exec by typescript) where the IntrinsicAttributes assignment is made, done by passing props with spread operator
-           */
-          {...{ id: 'context-menu', hideOnLeave: true }}
+      {contextMenu && (
+        <div
+          className={styles.contextMenu}
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          role="menu"
         >
-          <MenuItem {...{ onClick: copySelectedTextToClipboard }}>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => runMenuAction(copySelectedTextToClipboard)}
+          >
             Copy
-          </MenuItem>
-          <MenuItem {...{ onClick: pasteClipboardTextToTerminal }}>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => runMenuAction(pasteClipboardTextToTerminal)}
+          >
             Paste
-          </MenuItem>
-          <MenuItem {...{ onClick: clearTerminal }}>Clear</MenuItem>
-          <MenuItem {...{ onClick: runHelpCommand }}>Help</MenuItem>
-        </ContextMenu>
-      </div>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() =>
+              runMenuAction(() => {
+                clearTerminal();
+              })
+            }
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() =>
+              runMenuAction(() => {
+                runHelpCommand();
+              })
+            }
+          >
+            Help
+          </button>
+        </div>
+      )}
     </>
   );
 };

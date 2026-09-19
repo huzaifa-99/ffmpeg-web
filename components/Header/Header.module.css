@@ -6,6 +6,10 @@
   @apply text-white font-bold tracking-wide text-lg sm:text-xl;
 }
 
+.title a {
+  @apply text-inherit no-underline;
+}
+
 .githubLogo {
   @apply bg-white p-1 flex text-xl md:text-2xl text-black rounded-full;
 }

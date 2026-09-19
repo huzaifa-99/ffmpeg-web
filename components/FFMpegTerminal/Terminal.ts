@@ -1,15 +1,16 @@
-import { createFFmpeg, fetchFile, FFmpeg } from '@ffmpeg/ffmpeg';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { FitAddon } from '@xterm/addon-fit';
 import {
   ITerminalOptions as IXTerminalOptions,
   Terminal as XTerminal,
-} from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
+} from '@xterm/xterm';
 import getMimeType from '../../utils/helpers/getMimeType';
 
 /* Interfaces */
 export interface IFFMpegFileSystem {
   name: string;
-  data: string | Buffer | Blob | File;
+  data: string | Blob | File;
   mimeType: string;
 }
 interface IFFmpegFiles {
@@ -25,7 +26,80 @@ interface Command {
   description: string;
 }
 
+const FFMPEG_CORE_VERSION = '0.12.10';
+const FFMPEG_CORE_BASE_URL = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/esm`;
+
+/**
+ * Collapse multi-line / shell-continued command text into one argv-friendly line.
+ */
+const normalizeCommandText = (text: string): string =>
+  text
+    .replace(/\\\s*[\r\n]+/g, ' ')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/(^|\s)\\(?=\s|$)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 /* Commands */
+/**
+ * Split a shell-like command into argv, respecting single/double quotes.
+ * Quotes are stripped from the resulting tokens.
+ */
+const parseCommandArgs = (command: string): string[] => {
+  const args: string[] = [];
+  let current = '';
+  let quote: '"' | "'" | null = null;
+
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i];
+
+    if (quote) {
+      if (char === quote) {
+        quote = null;
+      } else {
+        current += char;
+      }
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+
+    if (/\s/.test(char)) {
+      if (current.length > 0) {
+        args.push(current);
+        current = '';
+      }
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current.length > 0) {
+    args.push(current);
+  }
+
+  return args;
+};
+
+const FS_RESERVED_NAMES = new Set(['.', '..', 'tmp', 'home', 'dev', 'proc']);
+
+const listGeneratedFileNames = async (
+  terminal: FFMpegTerminal
+): Promise<string[]> => {
+  const systemNames = new Set([
+    ...FS_RESERVED_NAMES,
+    ...(terminal.files.system?.map((x) => x.name) ?? []),
+  ]);
+  const homeDir = await terminal.ffmpegWasm.listDir('/');
+  return homeDir
+    .filter((entry) => !entry.isDir && !systemNames.has(entry.name))
+    .map((entry) => entry.name);
+};
+
 const clearCommand: Command = {
   exec: (terminal: FFMpegTerminal): FFMpegTerminal => terminal.clear(),
   description: 'Clears the screen',
@@ -48,58 +122,60 @@ const helpCommand: Command = {
 };
 const ffmpegCommand: Command = {
   exec: async (terminal: FFMpegTerminal): Promise<FFMpegTerminal> => {
-    // check if we need to load a file from ffmpeg files
-    const foundSystemFile = terminal.files.system?.find((x) =>
-      terminal.activeCommand.includes(x.name)
-    );
-    if (foundSystemFile) {
-      await terminal.ffmpegWasm.FS(
-        'writeFile',
-        foundSystemFile.name,
-        await fetchFile(foundSystemFile.data)
+    // load any system files referenced in the command into the wasm FS
+    const foundSystemFiles =
+      terminal.files.system?.filter((x) =>
+        terminal.activeCommand.includes(x.name)
+      ) ?? [];
+    for (const systemFile of foundSystemFiles) {
+      await terminal.ffmpegWasm.writeFile(
+        systemFile.name,
+        await fetchFile(systemFile.data)
       );
     }
 
-    // command with arguments
-    const cmdWithArgs: Array<string> = (() => {
-      // get command with args
-      const tmpCmdWithArgs: Array<string> = terminal.activeCommand.split(' ');
-
-      // remove the first ffmpeg from the command
-      tmpCmdWithArgs[0].toLowerCase() === 'ffmpeg' && tmpCmdWithArgs.shift();
-
-      return tmpCmdWithArgs;
+    // command with arguments (quote-aware — needed for -filter_complex / -map)
+    const cmdWithArgs = (() => {
+      const args = parseCommandArgs(
+        normalizeCommandText(terminal.activeCommand)
+      );
+      if (args[0]?.toLowerCase() === 'ffmpeg') {
+        args.shift();
+      }
+      return args;
     })();
 
-    // run command on ffmpeg wasm
-    await terminal.ffmpegWasm.run(...cmdWithArgs);
+    const filesBefore = new Set(await listGeneratedFileNames(terminal));
 
-    // update generated files if a system file was loaded
-    if (foundSystemFile) {
-      // get system file names
-      const systemFileNames = [
-        '.',
-        '..',
-        'tmp',
-        'home',
-        'dev',
-        'proc',
-        ...(terminal.files?.system?.map((x) => x.name) || []),
-      ];
+    let exitCode = 1;
+    try {
+      exitCode = await terminal.ffmpegWasm.exec(cmdWithArgs);
+    } catch {
+      exitCode = 1;
+    }
 
-      // get generated file names
-      const homeDir: Array<string> = terminal.ffmpegWasm.FS('readdir', '/');
-      const generatedFileNames = homeDir.filter(
-        (entry) => !systemFileNames?.includes(entry)
-      );
+    const generatedFileNames = await listGeneratedFileNames(terminal);
 
-      // update ffmpeg generated files
+    // Failed runs: drop partial outputs and skip Generated Files
+    if (exitCode !== 0) {
+      for (const filename of generatedFileNames) {
+        if (filesBefore.has(filename)) continue;
+        try {
+          await terminal.ffmpegWasm.deleteFile(filename);
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+      terminal.promptInput();
+      return terminal;
+    }
+
+    if (generatedFileNames.length > 0) {
       const generatedFiles: Array<IFFMpegFileSystem> = [];
-      generatedFileNames.map((filename) => {
-        // read file from ffmpeg filesystem
-        const fileData = terminal.ffmpegWasm.FS('readFile', filename);
+      for (const filename of generatedFileNames) {
+        const fileData = await terminal.ffmpegWasm.readFile(filename);
+        if (typeof fileData === 'string') continue;
 
-        // get file mimetype
         const mimeType = (() => {
           const filenameParts = filename?.split('.');
           const hasExtension = filenameParts.length >= 1;
@@ -108,23 +184,20 @@ const ffmpegCommand: Command = {
             : 'text/plain';
         })();
 
-        // get file blob url
         const url = URL.createObjectURL(
-          new Blob([fileData.buffer], { type: mimeType })
+          new Blob([new Uint8Array(fileData)], { type: mimeType })
         );
 
-        // add to generated files list
         generatedFiles.push({
           data: url,
           name: filename,
           mimeType: mimeType,
         });
-      });
-      terminal.files.generated = generatedFiles; // updated generated files list
-      await terminal.onGeneratedFiles(generatedFiles); // call generated files handler
+      }
+      terminal.files.generated = generatedFiles;
+      await terminal.onGeneratedFiles(generatedFiles);
     }
 
-    // prompt input and return
     terminal.promptInput();
     return terminal;
   },
@@ -203,9 +276,7 @@ export class FFMpegTerminal extends XTerminal {
   /**
    * FFMpeg.wasm instance
    */
-  ffmpegWasm: FFmpeg = createFFmpeg({
-    corePath: '/files/ffmpeg/ffmpeg-core.js',
-  });
+  ffmpegWasm: FFmpeg = new FFmpeg();
 
   /**
    * Callback to run when files are generated by ffmpeg commands
@@ -240,6 +311,20 @@ export class FFMpegTerminal extends XTerminal {
    */
   fitToContainer() {
     this.fitAddon.fit();
+  }
+
+  /**
+   * Paste text into the terminal as a single-line command.
+   * Newlines / shell line-continuations are collapsed so multi-line pastes work.
+   */
+  pasteText(text: string): FFMpegTerminal {
+    const normalized = normalizeCommandText(text);
+
+    if (!normalized) return this;
+
+    this.write(normalized);
+    this.activeCommand = this.activeCommand + normalized;
+    return this;
   }
 
   /**
@@ -295,14 +380,26 @@ export class FFMpegTerminal extends XTerminal {
   private async setupFFMpegWasm() {
     try {
       // add custom ffmpegWasm logger
-      this.ffmpegWasm.setLogger((msg) => ffmpegWasmLogger(msg, this));
+      this.ffmpegWasm.on('log', (msg) => ffmpegWasmLogger(msg, this));
 
       // block user input
       this.blockInput = true;
       this.writeln('loading ffmpeg wasm...');
 
-      // load ffmpeg wasm
-      await this.ffmpegWasm.load();
+      // load ffmpeg wasm from CDN as same-origin blob URLs (works with COEP)
+      // classWorkerURL must be an absolute same-origin URL so bundlers don't
+      // rewrite the worker (Turbopack/webpack both struggle with the default)
+      await this.ffmpegWasm.load({
+        coreURL: await toBlobURL(
+          `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`,
+          'text/javascript'
+        ),
+        wasmURL: await toBlobURL(
+          `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
+          'application/wasm'
+        ),
+        classWorkerURL: `${window.location.origin}/ffmpeg/worker.js`,
+      });
 
       // unblock user input
       this.blockInput = false;
@@ -331,20 +428,8 @@ export class FFMpegTerminal extends XTerminal {
        */
       if (e.ctrlKey && e.type === 'keyup') {
         /**
-         * CTRL + V: Paste the text from clipboard to the terminal
-         */
-        if (e.code === 'KeyV') {
-          navigator.clipboard
-            .readText()
-            .then((text) => {
-              this.write(text);
-              this.activeCommand = this.activeCommand + text;
-            })
-            .catch(() => null);
-        }
-
-        /**
          * CTRL + C: -> TODO: copy text to clipboard
+         * (Paste is handled via onData — xterm delivers clipboard paste as one payload)
          */
         if (e.code === 'KeyC') {
           this.write('^C');
@@ -369,6 +454,17 @@ export class FFMpegTerminal extends XTerminal {
      * Listen to data events
      */
     this.onData((e) => {
+      if (this.blockInput) return;
+
+      // Enter is handled by the keydown handler above
+      if (e === '\r' || e === '\n') return;
+
+      // xterm delivers paste (incl. multi-line) as a single multi-char payload
+      if (e.length > 1 || /[\r\n]/.test(e)) {
+        this.pasteText(e);
+        return;
+      }
+
       /**
        * Check if a keyboard key is valid input
        * @param key - the keyboard key to check
@@ -379,12 +475,9 @@ export class FFMpegTerminal extends XTerminal {
           key <= String.fromCharCode(0x7e)) ||
         key >= '\u00a0';
 
-      /**
-       * Write key to terminal if valid key is pressed
-       */
-      if (!this.blockInput && isValidKey(e)) {
-        this.activeCommand = this.activeCommand + e; // store as active command (user input)
-        this.write(e); // write to terminal
+      if (isValidKey(e)) {
+        this.activeCommand = this.activeCommand + e;
+        this.write(e);
       }
     });
   }

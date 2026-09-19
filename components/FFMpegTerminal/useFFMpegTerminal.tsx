@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef } from 'react';
 import { FFMpegTerminal, IFFMpegFileSystem } from './Terminal';
 
 const theme = {
   foreground: '#F8F8F8',
   background: '#2D2E2C',
-  selection: '#5DA5D533',
+  selectionBackground: '#5DA5D533',
   black: '#1E1E1D',
   brightBlack: '#262625',
   red: '#CE5C5C',
@@ -35,21 +35,16 @@ const useFFMpegTerminal = ({
   onGeneratedFiles = async () => undefined,
 }: IUseFFMpegTerminal) => {
   const terminalElRef = useRef<HTMLDivElement>(null);
-  const [terminal, setTerminal] = useState<FFMpegTerminal | null>(null);
-  const [terminalSystemFiles, setTerminalSystemFiles] =
-    useState<Array<IFFMpegFileSystem>>();
+  const terminalRef = useRef<FFMpegTerminal | null>(null);
+  // Keep a ref so mount can pick up files that arrived before the terminal existed
+  const systemFilesRef = useRef<Array<IFFMpegFileSystem>>([]);
 
-  // Update terminal system files
-  useEffect(() => {
-    if (
-      terminal &&
-      terminal.files.system &&
-      terminalSystemFiles &&
-      terminalSystemFiles.length > 0
-    ) {
-      terminal.files.system = terminalSystemFiles;
-    }
-  }, [terminal, terminalSystemFiles]);
+  const syncSystemFilesToTerminal = (
+    terminal: FFMpegTerminal,
+    files: Array<IFFMpegFileSystem>
+  ) => {
+    terminal.files.system = files;
+  };
 
   /**
    * Add ffmpeg terminal to an HTML element
@@ -67,6 +62,7 @@ const useFFMpegTerminal = ({
         cursorBlink: true,
         cursorStyle: 'block',
         onGeneratedFiles: onGeneratedFiles,
+        files: { system: systemFilesRef.current },
       });
 
       // mount terminal to container
@@ -87,8 +83,9 @@ const useFFMpegTerminal = ({
       // focus input
       terminal.focus();
 
-      // terminal state variable
-      setTerminal(terminal);
+      // Sample files often finish loading before setup completes — re-sync
+      syncSystemFilesToTerminal(terminal, systemFilesRef.current);
+      terminalRef.current = terminal;
     },
     [onGeneratedFiles]
   );
@@ -98,7 +95,13 @@ const useFFMpegTerminal = ({
    * @param files a list of files to add
    */
   const updateFFMpegSystemFiles = useCallback(
-    (files: Array<IFFMpegFileSystem>) => setTerminalSystemFiles(files),
+    (files: Array<IFFMpegFileSystem>) => {
+      systemFilesRef.current = files;
+      const terminal = terminalRef.current;
+      if (terminal) {
+        syncSystemFilesToTerminal(terminal, files);
+      }
+    },
     []
   );
 
@@ -106,10 +109,12 @@ const useFFMpegTerminal = ({
    * Copy selected text from ffmpeg terminal to clipboard
    */
   const copySelectedTextToClipboard = async () => {
-    if (terminal) {
-      const selectedText = terminal.getSelection().trim();
+    const terminal = terminalRef.current;
+    if (!terminal) return;
 
-      selectedText && (await navigator.clipboard.writeText(selectedText));
+    const selectedText = terminal.getSelection().trim();
+    if (selectedText) {
+      await navigator.clipboard.writeText(selectedText);
     }
   };
 
@@ -117,38 +122,38 @@ const useFFMpegTerminal = ({
    * Paste text from clipboard to ffmpeg terminal
    */
   const pasteClipboardTextToTerminal = async () => {
+    const terminal = terminalRef.current;
     if (
-      terminal &&
-      window.isSecureContext // make sure user is on https
+      !terminal ||
+      !window.isSecureContext // make sure user is on https
     ) {
-      const textFromClipboard: string | null = await navigator.clipboard
-        .readText()
-        .catch(() => null);
-      if (!textFromClipboard) return;
-
-      terminal.write(textFromClipboard.trim());
-      terminal.focus();
-
-      terminal.activeCommand = textFromClipboard;
+      return;
     }
+
+    const textFromClipboard: string | null = await navigator.clipboard
+      .readText()
+      .catch(() => null);
+    if (!textFromClipboard) return;
+
+    terminal.pasteText(textFromClipboard);
+    terminal.focus();
   };
 
   /**
    * Clears the ffmpeg terminal
    */
-  const clearTerminal = () => terminal?.clear();
+  const clearTerminal = () => terminalRef.current?.clear();
 
   /**
    * Execute the help command on the ffmpeg terminal
    */
   const runHelpCommand = () => {
-    if (terminal) {
-      terminal.commandList['help'].exec(terminal);
+    const terminal = terminalRef.current;
+    if (!terminal) return;
 
-      terminal.focus();
-
-      terminal.activeCommand = '';
-    }
+    terminal.commandList['help'].exec(terminal);
+    terminal.focus();
+    terminal.activeCommand = '';
   };
 
   return {
